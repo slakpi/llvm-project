@@ -649,6 +649,8 @@ static unsigned AlignTokens(const FormatStyle &Style, F &&Matches,
     unsigned ChangeWidthLeft = CurrentChange.StartOfTokenColumn;
     unsigned ChangeWidthAnchor = 0;
     unsigned ChangeWidthRight = 0;
+    if (ACS.AlignToColumn != 0)
+      ChangeWidthLeft = std::max(ACS.AlignToColumn, CurrentChange.StartOfTokenColumn);
     if (RightJustify)
       if (ACS.PadOperators)
         ChangeWidthAnchor = CurrentChange.TokenLength;
@@ -671,9 +673,33 @@ static unsigned AlignTokens(const FormatStyle &Style, F &&Matches,
     unsigned NewLeft = std::max(ChangeWidthLeft, WidthLeft);
     unsigned NewAnchor = std::max(ChangeWidthAnchor, WidthAnchor);
     unsigned NewRight = std::max(ChangeWidthRight, WidthRight);
+    // `AlignToColumn == 0` means the column is not fixed, and
     // `ColumnLimit == 0` means there is no column limit.
-    if (Style.ColumnLimit != 0 &&
-        Style.ColumnLimit < NewLeft + NewAnchor + NewRight) {
+    if (ACS.AlignToColumn != 0 && NewLeft > ACS.AlignToColumn) {
+      // Work backward to find the first change that is not a pointer or a
+      // reference, then update the next change to wrap to the next line. Shift
+      // the start columns down such that the first pointer / reference token,
+      // or the current token itself if there are no pointer / reference tokens,
+      // is at 0. ``AlignTokenSequence`` will move it into the correct position
+      // and make adjustments for any pointer / references. Long lines that wrap
+      // because of ColumnLimit will have already had this done (the next
+      // condition below is a separate case that does not align a change if it
+      // WOULD put it over the ColumnLimit).
+      int Previous = i - 1;
+      for ( ; Previous >= 0; --Previous) {
+        auto &PrevChange = Changes[Previous];
+        if (!PrevChange.Tok->isPointerOrReference()) {
+          break;
+        }
+      }
+      unsigned Next = Previous + 1;
+      auto Shift = Changes[Next].StartOfTokenColumn;
+      Changes[Next].NewlinesBefore++;
+      for ( ; Next <= i; ++Next) {
+        Changes[Next].StartOfTokenColumn -= Shift;
+      }
+    } else if (Style.ColumnLimit != 0 &&
+               Style.ColumnLimit < NewLeft + NewAnchor + NewRight) {
       AlignCurrentSequence();
       StartOfSequence = i;
       WidthLeft = ChangeWidthLeft;

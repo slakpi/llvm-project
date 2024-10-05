@@ -97,6 +97,9 @@ struct FormatStyle {
     ///  ``Cpp11BracedListStyle`` is ``true``) and parentheses.
     /// \endnote
     BAS_BlockIndent,
+    /// Like ``BlockIndent`` except a break will be forced regardless of whether
+    /// the parameters fit on a single line.
+    BAS_Cliff,
   };
 
   /// If ``true``, horizontally aligns arguments after an open bracket.
@@ -260,12 +263,29 @@ struct FormatStyle {
     ///   bbb >>= 2;
     /// \endcode
     bool PadOperators;
+    /// If greater than zero, alignment always occurs at the specified column.
+    /// Tokens are wrapped to the next line and aligned at the specified column
+    /// if they do not fit.
+    /// \code
+    ///   greater than zero:
+    ///   int               a;
+    ///   float             f;
+    ///   long_struct_type_name
+    ///                    *s;
+    ///
+    ///   zero:
+    ///   int                    a;
+    ///   float                  f;
+    ///   long_struct_type_name *s;
+    /// \endcode
+    unsigned AlignToColumn;
     bool operator==(const AlignConsecutiveStyle &R) const {
       return Enabled == R.Enabled && AcrossEmptyLines == R.AcrossEmptyLines &&
              AcrossComments == R.AcrossComments &&
              AlignCompound == R.AlignCompound &&
              AlignFunctionPointers == R.AlignFunctionPointers &&
-             PadOperators == R.PadOperators;
+             PadOperators == R.PadOperators &&
+             AlignToColumn == R.AlignToColumn;
     }
     bool operator!=(const AlignConsecutiveStyle &R) const {
       return !(*this == R);
@@ -1217,6 +1237,14 @@ struct FormatStyle {
     ///           int c);
     /// \endcode
     BPPS_AlwaysOnePerLine,
+    /// Like ``AlwaysOnePerLine`` except the whole parameter list is moved down
+    /// to the next line.
+    /// \code
+    ///    void f
+    ///        (int a,
+    ///         int b,
+    ///         int c);
+    BPPS_Cliff,
   };
 
   /// The bin pack parameters style to use.
@@ -2061,6 +2089,18 @@ struct FormatStyle {
     ///     } // namespace N
     /// \endcode
     BS_Whitesmiths,
+    /// Like ``Whitesmiths``, but do not indent the first level of function
+    /// bodies.
+    /// \code
+    ///   void foo(bool b)
+    ///   {
+    ///   if (b)
+    ///     {
+    ///     baz(2)
+    ///     }
+    ///   }
+    /// \endcode
+    BS_Cliff,
     /// Always break before braces and add an extra level of indentation to
     /// braces of control statements, not to those of class, function
     /// or other definitions.
@@ -5321,6 +5361,8 @@ FormatStyle getGNUStyle();
 FormatStyle getMicrosoftStyle(FormatStyle::LanguageKind Language);
 
 FormatStyle getClangFormatStyle();
+
+FormatStyle getCliffStyle();
 
 /// Returns style indicating formatting should be not applied at all.
 FormatStyle getNoStyle();

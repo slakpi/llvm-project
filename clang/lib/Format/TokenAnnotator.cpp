@@ -5505,6 +5505,46 @@ bool TokenAnnotator::mustBreakBefore(const AnnotatedLine &Line,
   if (Right.NewlinesBefore > 1 && Style.MaxEmptyLinesToKeep > 0)
     return true;
 
+  // Function pointer typedefs and variable declarations introduce ambiguity
+  // with the parentheses:
+  //
+  //     typedef void ( *fn_type )( <params> );
+  //                  ^           ^
+  //                  |           |
+  //                  Both of these parentheses will be marked as being possible
+  //                  function declaration parentheses.
+  //
+  // So, if the line might be a function declaration:
+  //
+  //   * If using the ``Cliff`` bin pack style, the opening parenthesis of the
+  //     parameter list needs to be moved to the next line.
+  //
+  //   * If using the ``Cliff`` alignment after open bracket style, the first
+  //     parameter needs to be moved to the next line.
+  //
+  // In both cases, we need to look ahead and see if there are any other
+  // parentheses on the same line marked as a function declaration parethesis.
+  // If so, do not tag this one as must break before.
+  if (Style.isCpp() &&
+      ((Style.BinPackParameters == FormatStyle::BPPS_Cliff &&
+        Right.MightBeFunctionDeclParen) ||
+       (Style.AlignAfterOpenBracket == FormatStyle::BAS_Cliff &&
+        Left.MightBeFunctionDeclParen)) &&
+      Line.MightBeFunctionDecl) {
+    bool MustBreak = true;
+
+    for (auto NextTok = Right.getNextNonComment(); NextTok;
+         NextTok = NextTok->getNextNonComment()) {
+      if (NextTok->MightBeFunctionDeclParen) {
+        MustBreak = false;
+        break;
+      }
+    }
+
+    if (MustBreak)
+      return true;
+  }
+
   if (Style.BreakFunctionDefinitionParameters && Line.MightBeFunctionDecl &&
       Line.mightBeFunctionDefinition() && Left.MightBeFunctionDeclParen &&
       Left.ParameterCount > 0) {
@@ -5513,7 +5553,8 @@ bool TokenAnnotator::mustBreakBefore(const AnnotatedLine &Line,
 
   // Ignores the first parameter as this will be handled separately by
   // BreakFunctionDefinitionParameters or AlignAfterOpenBracket.
-  if (Style.BinPackParameters == FormatStyle::BPPS_AlwaysOnePerLine &&
+  if ((Style.BinPackParameters == FormatStyle::BPPS_AlwaysOnePerLine ||
+       Style.BinPackParameters == FormatStyle::BPPS_Cliff) &&
       Line.MightBeFunctionDecl && !Left.opensScope() &&
       startsNextParameter(Right, Style)) {
     return true;
@@ -6260,7 +6301,8 @@ bool TokenAnnotator::canBreakBefore(const AnnotatedLine &Line,
 
   // We only break before r_paren if we're in a block indented context.
   if (Right.is(tok::r_paren)) {
-    if (Style.AlignAfterOpenBracket != FormatStyle::BAS_BlockIndent ||
+    if ((Style.AlignAfterOpenBracket != FormatStyle::BAS_BlockIndent &&
+         Style.AlignAfterOpenBracket != FormatStyle::BAS_Cliff) ||
         !Right.MatchingParen) {
       return false;
     }
@@ -6275,7 +6317,8 @@ bool TokenAnnotator::canBreakBefore(const AnnotatedLine &Line,
 
   if (Left.isOneOf(tok::r_paren, TT_TrailingAnnotation) &&
       Right.is(TT_TrailingAnnotation) &&
-      Style.AlignAfterOpenBracket == FormatStyle::BAS_BlockIndent) {
+      (Style.AlignAfterOpenBracket == FormatStyle::BAS_BlockIndent ||
+       Style.AlignAfterOpenBracket == FormatStyle::BAS_Cliff)) {
     return false;
   }
 

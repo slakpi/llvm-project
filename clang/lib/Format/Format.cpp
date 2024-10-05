@@ -48,39 +48,46 @@ template <> struct MappingTraits<FormatStyle::AlignConsecutiveStyle> {
                 FormatStyle::AlignConsecutiveStyle(
                     {/*Enabled=*/false, /*AcrossEmptyLines=*/false,
                      /*AcrossComments=*/false, /*AlignCompound=*/false,
-                     /*AlignFunctionPointers=*/false, /*PadOperators=*/true}));
+                     /*AlignFunctionPointers=*/false, /*PadOperators=*/true,
+                     /*AlignToColumn*/0u}));
     IO.enumCase(Value, "Consecutive",
                 FormatStyle::AlignConsecutiveStyle(
                     {/*Enabled=*/true, /*AcrossEmptyLines=*/false,
                      /*AcrossComments=*/false, /*AlignCompound=*/false,
-                     /*AlignFunctionPointers=*/false, /*PadOperators=*/true}));
+                     /*AlignFunctionPointers=*/false, /*PadOperators=*/true,
+                     /*AlignToColumn*/0u}));
     IO.enumCase(Value, "AcrossEmptyLines",
                 FormatStyle::AlignConsecutiveStyle(
                     {/*Enabled=*/true, /*AcrossEmptyLines=*/true,
                      /*AcrossComments=*/false, /*AlignCompound=*/false,
-                     /*AlignFunctionPointers=*/false, /*PadOperators=*/true}));
+                     /*AlignFunctionPointers=*/false, /*PadOperators=*/true,
+                     /*AlignToColumn*/0u}));
     IO.enumCase(Value, "AcrossComments",
                 FormatStyle::AlignConsecutiveStyle(
                     {/*Enabled=*/true, /*AcrossEmptyLines=*/false,
                      /*AcrossComments=*/true, /*AlignCompound=*/false,
-                     /*AlignFunctionPointers=*/false, /*PadOperators=*/true}));
+                     /*AlignFunctionPointers=*/false, /*PadOperators=*/true,
+                     /*AlignToColumn*/0u}));
     IO.enumCase(Value, "AcrossEmptyLinesAndComments",
                 FormatStyle::AlignConsecutiveStyle(
                     {/*Enabled=*/true, /*AcrossEmptyLines=*/true,
                      /*AcrossComments=*/true, /*AlignCompound=*/false,
-                     /*AlignFunctionPointers=*/false, /*PadOperators=*/true}));
+                     /*AlignFunctionPointers=*/false, /*PadOperators=*/true,
+                     /*AlignToColumn*/0u}));
 
     // For backward compatibility.
     IO.enumCase(Value, "true",
                 FormatStyle::AlignConsecutiveStyle(
                     {/*Enabled=*/true, /*AcrossEmptyLines=*/false,
                      /*AcrossComments=*/false, /*AlignCompound=*/false,
-                     /*AlignFunctionPointers=*/false, /*PadOperators=*/true}));
+                     /*AlignFunctionPointers=*/false, /*PadOperators=*/true,
+                     /*AlignToColumn*/0u}));
     IO.enumCase(Value, "false",
                 FormatStyle::AlignConsecutiveStyle(
                     {/*Enabled=*/false, /*AcrossEmptyLines=*/false,
                      /*AcrossComments=*/false, /*AlignCompound=*/false,
-                     /*AlignFunctionPointers=*/false, /*PadOperators=*/true}));
+                     /*AlignFunctionPointers=*/false, /*PadOperators=*/true,
+                     /*AlignToColumn*/0u}));
   }
 
   static void mapping(IO &IO, FormatStyle::AlignConsecutiveStyle &Value) {
@@ -90,6 +97,7 @@ template <> struct MappingTraits<FormatStyle::AlignConsecutiveStyle> {
     IO.mapOptional("AlignCompound", Value.AlignCompound);
     IO.mapOptional("AlignFunctionPointers", Value.AlignFunctionPointers);
     IO.mapOptional("PadOperators", Value.PadOperators);
+    IO.mapOptional("AlignToColumn", Value.AlignToColumn);
   }
 };
 
@@ -174,6 +182,7 @@ template <> struct ScalarEnumerationTraits<FormatStyle::BraceBreakingStyle> {
     IO.enumCase(Value, "Stroustrup", FormatStyle::BS_Stroustrup);
     IO.enumCase(Value, "Allman", FormatStyle::BS_Allman);
     IO.enumCase(Value, "Whitesmiths", FormatStyle::BS_Whitesmiths);
+    IO.enumCase(Value, "Cliff", FormatStyle::BS_Cliff);
     IO.enumCase(Value, "GNU", FormatStyle::BS_GNU);
     IO.enumCase(Value, "WebKit", FormatStyle::BS_WebKit);
     IO.enumCase(Value, "Custom", FormatStyle::BS_Custom);
@@ -1374,6 +1383,20 @@ static void expandPresetsBraceWrapping(FormatStyle &Expanded) {
     Expanded.BraceWrapping.BeforeElse = true;
     Expanded.BraceWrapping.BeforeLambdaBody = true;
     break;
+  case FormatStyle::BS_Cliff:
+    Expanded.BraceWrapping.AfterCaseLabel = true;
+    Expanded.BraceWrapping.AfterClass = true;
+    Expanded.BraceWrapping.AfterControlStatement = FormatStyle::BWACS_Always;
+    Expanded.BraceWrapping.AfterEnum = true;
+    Expanded.BraceWrapping.AfterFunction = true;
+    Expanded.BraceWrapping.AfterNamespace = true;
+    Expanded.BraceWrapping.AfterObjCDeclaration = true;
+    Expanded.BraceWrapping.AfterStruct = true;
+    Expanded.BraceWrapping.AfterExternBlock = true;
+    Expanded.BraceWrapping.BeforeCatch = true;
+    Expanded.BraceWrapping.BeforeElse = true;
+    Expanded.BraceWrapping.BeforeLambdaBody = true;
+    break;
   case FormatStyle::BS_GNU:
     Expanded.BraceWrapping = {
         /*AfterCaseLabel=*/true,
@@ -1964,6 +1987,37 @@ FormatStyle getClangFormatStyle() {
   return Style;
 }
 
+FormatStyle getCliffStyle() {
+  FormatStyle Style = getGNUStyle();
+  Style.IndentWidth = 4;
+  Style.IndentCaseBlocks = false;
+  Style.IndentCaseLabels = true;
+  Style.BreakBeforeBraces = FormatStyle::BS_Cliff;
+  Style.BreakAfterReturnType = FormatStyle::RTBS_Automatic;
+  Style.PenaltyReturnTypeOnItsOwnLine = 1000;
+  Style.SpaceBeforeParens = FormatStyle::SBPO_Never;
+  Style.SpacesInParens = FormatStyle::SIPO_Custom;
+  Style.SpacesInParensOptions.ExceptDoubleParentheses = true;
+  Style.SpacesInParensOptions.InConditionalStatements = true;
+  Style.SpacesInParensOptions.InCStyleCasts = false;
+  Style.SpacesInParensOptions.InEmptyParentheses = false;
+  Style.SpacesInParensOptions.Other = true;
+  Style.BinPackParameters = FormatStyle::BPPS_Cliff;
+  Style.BinPackArguments = true;
+  Style.BreakFunctionDefinitionParameters = true;
+  Style.AlignAfterOpenBracket = FormatStyle::BAS_Cliff;
+  Style.AlignConsecutiveDeclarations.Enabled = true;
+  Style.AlignConsecutiveDeclarations.AlignToColumn = 25u;
+  Style.AlignConsecutiveDeclarations.AlignFunctionPointers = true;
+  Style.AlignConsecutiveAssignments.Enabled = true;
+  Style.AlignConsecutiveAssignments.AcrossComments = true;
+  Style.AlignConsecutiveMacros.Enabled = true;
+  Style.AlignConsecutiveMacros.AcrossComments = true;
+  Style.AlignConsecutiveBitFields.Enabled = true;
+  Style.AlignConsecutiveBitFields.AcrossComments = true;
+  return Style;
+}
+
 FormatStyle getNoStyle() {
   FormatStyle NoStyle = getLLVMStyle();
   NoStyle.DisableFormat = true;
@@ -1990,6 +2044,8 @@ bool getPredefinedStyle(StringRef Name, FormatStyle::LanguageKind Language,
     *Style = getMicrosoftStyle(Language);
   else if (Name.equals_insensitive("clang-format"))
     *Style = getClangFormatStyle();
+  else if (Name.equals_insensitive("cliff"))
+    *Style = getCliffStyle();
   else if (Name.equals_insensitive("none"))
     *Style = getNoStyle();
   else if (Name.equals_insensitive("inheritparentconfig"))

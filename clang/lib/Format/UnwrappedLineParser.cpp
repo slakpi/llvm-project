@@ -774,7 +774,8 @@ FormatToken *UnwrappedLineParser::parseBlock(bool MustBeDeclaration,
   // For Whitesmiths mode, jump to the next level prior to skipping over the
   // braces.
   if (!VerilogHierarchy && AddLevels > 0 &&
-      Style.BreakBeforeBraces == FormatStyle::BS_Whitesmiths) {
+      (Style.BreakBeforeBraces == FormatStyle::BS_Whitesmiths ||
+       Style.BreakBeforeBraces == FormatStyle::BS_Cliff)) {
     ++Line->Level;
   }
 
@@ -811,7 +812,9 @@ FormatToken *UnwrappedLineParser::parseBlock(bool MustBeDeclaration,
 
   ScopedDeclarationState DeclarationState(*Line, DeclarationScopeStack,
                                           MustBeDeclaration);
-  if (AddLevels > 0u && Style.BreakBeforeBraces != FormatStyle::BS_Whitesmiths)
+  if (AddLevels > 0u &&
+      (Style.BreakBeforeBraces != FormatStyle::BS_Whitesmiths &&
+       Style.BreakBeforeBraces != FormatStyle::BS_Cliff))
     Line->Level += AddLevels;
 
   FormatToken *IfLBrace = nullptr;
@@ -1916,9 +1919,10 @@ void UnwrappedLineParser::parseStructuralElement(
         }
         if (!Previous || Previous->isNot(TT_TypeDeclarationParen))
           FormatTok->setFinalizedType(TT_FunctionLBrace);
-        parseBlock();
+        auto AddLevels = (Style.BreakBeforeBraces == FormatStyle::BS_Cliff ? 0u : 1u);
+        parseBlock(false, AddLevels);
         IsDecltypeAutoFunction = false;
-        addUnwrappedLine();
+        addUnwrappedLine(AddLevels > 0u ? LineLevel::Remove : LineLevel::Keep);
         return;
       }
       // Otherwise this was a braced init list, and the structural
@@ -3113,7 +3117,8 @@ void UnwrappedLineParser::parseNamespace() {
             : 0u;
     bool ManageWhitesmithsBraces =
         AddLevels == 0u &&
-        Style.BreakBeforeBraces == FormatStyle::BS_Whitesmiths;
+        (Style.BreakBeforeBraces == FormatStyle::BS_Whitesmiths ||
+         Style.BreakBeforeBraces == FormatStyle::BS_Cliff);
 
     // If we're in Whitesmiths mode, indent the brace if we're not indenting
     // the whole block.
@@ -3259,7 +3264,8 @@ void UnwrappedLineParser::parseDoWhile() {
 
   // If in Whitesmiths mode, the line with the while() needs to be indented
   // to the same level as the block.
-  if (Style.BreakBeforeBraces == FormatStyle::BS_Whitesmiths)
+  if (Style.BreakBeforeBraces == FormatStyle::BS_Whitesmiths ||
+      Style.BreakBeforeBraces == FormatStyle::BS_Cliff)
     ++Line->Level;
 
   nextToken();
@@ -3287,7 +3293,8 @@ void UnwrappedLineParser::parseLabel(bool LeftAlignLabel) {
           FormatStyle::BWACS_Always) {
         addUnwrappedLine();
         if (!Style.IndentCaseBlocks &&
-            Style.BreakBeforeBraces == FormatStyle::BS_Whitesmiths) {
+            (Style.BreakBeforeBraces == FormatStyle::BS_Whitesmiths ||
+             Style.BreakBeforeBraces == FormatStyle::BS_Cliff)) {
           ++Line->Level;
         }
       }
@@ -4554,7 +4561,8 @@ void UnwrappedLineParser::addUnwrappedLine(LineLevel AdjustLevel) {
   // needs to be indented.
   bool ClosesWhitesmithsBlock =
       Line->MatchingOpeningBlockLineIndex != UnwrappedLine::kInvalidIndex &&
-      Style.BreakBeforeBraces == FormatStyle::BS_Whitesmiths;
+      (Style.BreakBeforeBraces == FormatStyle::BS_Whitesmiths ||
+       Style.BreakBeforeBraces == FormatStyle::BS_Cliff);
 
   // If the current line was expanded from a macro call, we use it to
   // reconstruct an unwrapped line from the structure of the expanded unwrapped

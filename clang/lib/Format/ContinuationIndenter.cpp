@@ -1234,7 +1234,8 @@ unsigned ContinuationIndenter::addTokenOnNewLine(LineState &State,
 
   if (PreviousNonComment && PreviousNonComment->is(tok::l_paren)) {
     CurrentState.BreakBeforeClosingParen =
-        Style.AlignAfterOpenBracket == FormatStyle::BAS_BlockIndent;
+        (Style.AlignAfterOpenBracket == FormatStyle::BAS_BlockIndent ||
+         Style.AlignAfterOpenBracket == FormatStyle::BAS_Cliff);
   }
 
   if (CurrentState.AvoidBinPacking) {
@@ -1311,7 +1312,17 @@ unsigned ContinuationIndenter::getNewLineColumn(const LineState &State) {
     return State.FirstIndent;
   }
 
-  if (Style.BreakBeforeBraces == FormatStyle::BS_Whitesmiths &&
+  // If using ``Cliff`` align after open bracket, do not indent function
+  // parameters in declarations and definitions.
+  if (Style.AlignAfterOpenBracket == FormatStyle::BAS_Cliff &&
+      State.Line->MightBeFunctionDecl && PreviousNonComment &&
+      (PreviousNonComment->opensScope() || startsNextParameter(Current, Style))) {
+    return (Style.IndentWidth * State.Line->First->IndentLevel) +
+           Style.IndentWidth;
+  }
+
+  if ((Style.BreakBeforeBraces == FormatStyle::BS_Whitesmiths ||
+       Style.BreakBeforeBraces == FormatStyle::BS_Cliff) &&
       State.Line->First->is(tok::kw_enum)) {
     return (Style.IndentWidth * State.Line->First->IndentLevel) +
            Style.IndentWidth;
@@ -1366,7 +1377,8 @@ unsigned ContinuationIndenter::getNewLineColumn(const LineState &State) {
       State.Stack.size() > 1) {
     return State.Stack[State.Stack.size() - 2].LastSpace;
   }
-  if (Style.AlignAfterOpenBracket == FormatStyle::BAS_BlockIndent &&
+  if ((Style.AlignAfterOpenBracket == FormatStyle::BAS_BlockIndent ||
+       Style.AlignAfterOpenBracket == FormatStyle::BAS_Cliff) &&
       (Current.is(tok::r_paren) ||
        (Current.is(tok::r_brace) && Current.MatchingParen &&
         Current.MatchingParen->is(BK_BracedInit))) &&

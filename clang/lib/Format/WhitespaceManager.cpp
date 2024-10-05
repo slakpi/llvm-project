@@ -649,8 +649,10 @@ static unsigned AlignTokens(const FormatStyle &Style, F &&Matches,
     unsigned ChangeWidthLeft = CurrentChange.StartOfTokenColumn;
     unsigned ChangeWidthAnchor = 0;
     unsigned ChangeWidthRight = 0;
-    if (ACS.AlignToColumn != 0)
-      ChangeWidthLeft = std::max(ACS.AlignToColumn, CurrentChange.StartOfTokenColumn);
+    if (ACS.AlignToColumn != 0) {
+      if (CurrentChange.Tok->is(TT_StartOfName) || i > StartOfSequence)
+        ChangeWidthLeft = std::max(ACS.AlignToColumn, CurrentChange.StartOfTokenColumn);
+    }
     if (RightJustify)
       if (ACS.PadOperators)
         ChangeWidthAnchor = CurrentChange.TokenLength;

@@ -1989,6 +1989,15 @@ FormatStyle getClangFormatStyle() {
 
 FormatStyle getCliffStyle() {
   FormatStyle Style = getGNUStyle();
+  Style.AllowShortBlocksOnASingleLine = FormatStyle::SBS_Never;
+  Style.AllowShortCaseExpressionOnASingleLine = false;
+  Style.AllowShortCaseLabelsOnASingleLine = false;
+  Style.AllowShortCompoundRequirementOnASingleLine = false;
+  Style.AllowShortEnumsOnASingleLine = false;
+  Style.AllowShortFunctionsOnASingleLine = FormatStyle::SFS_None;
+  Style.AllowShortIfStatementsOnASingleLine = FormatStyle::SIS_Never;
+  Style.AllowShortLambdasOnASingleLine = FormatStyle::SLS_None;
+  Style.AllowShortLoopsOnASingleLine = false;
   Style.IndentWidth = 4;
   Style.IndentCaseBlocks = false;
   Style.IndentCaseLabels = true;

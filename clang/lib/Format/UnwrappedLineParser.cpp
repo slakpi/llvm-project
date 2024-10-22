@@ -34,6 +34,17 @@ namespace clang {
 namespace format {
 
 namespace {
+struct Depth {
+public:
+  Depth(unsigned *DepthCounter) : DepthCounter(DepthCounter) {
+    ++(*DepthCounter);
+  }
+
+  ~Depth() { --(*DepthCounter); }
+
+private:
+  unsigned *DepthCounter;
+};
 
 void printLine(llvm::raw_ostream &OS, const UnwrappedLine &Line,
                StringRef Prefix = "", bool PrintText = false) {
@@ -169,6 +180,7 @@ UnwrappedLineParser::UnwrappedLineParser(
                        ? IG_Rejected
                        : IG_Inited),
       IncludeGuardToken(nullptr), FirstStartColumn(FirstStartColumn),
+      BraceDepth(0),
       Macros(Style.Macros, SourceMgr, Style, Allocator, IdentTable) {
   assert(IsCpp == LangOpts.CXXOperatorNames);
 }
@@ -748,6 +760,8 @@ FormatToken *UnwrappedLineParser::parseBlock(bool MustBeDeclaration,
                                              bool KeepBraces,
                                              IfStmtKind *IfKind,
                                              bool UnindentWhitesmithsBraces) {
+  Depth BraceDepthCounter(&BraceDepth);
+
   auto HandleVerilogBlockLabel = [this]() {
     // ":" name
     if (Style.isVerilog() && FormatTok->is(tok::colon)) {
@@ -814,8 +828,9 @@ FormatToken *UnwrappedLineParser::parseBlock(bool MustBeDeclaration,
                                           MustBeDeclaration);
   if (AddLevels > 0u &&
       (Style.BreakBeforeBraces != FormatStyle::BS_Whitesmiths &&
-       Style.BreakBeforeBraces != FormatStyle::BS_Cliff))
+       Style.BreakBeforeBraces != FormatStyle::BS_Cliff)) {
     Line->Level += AddLevels;
+  }
 
   FormatToken *IfLBrace = nullptr;
   const bool SimpleBlock = parseLevel(Tok, IfKind, &IfLBrace);
@@ -1919,7 +1934,10 @@ void UnwrappedLineParser::parseStructuralElement(
         }
         if (!Previous || Previous->isNot(TT_TypeDeclarationParen))
           FormatTok->setFinalizedType(TT_FunctionLBrace);
-        auto AddLevels = (Style.BreakBeforeBraces == FormatStyle::BS_Cliff ? 0u : 1u);
+        auto AddLevels =
+            (Style.BreakBeforeBraces == FormatStyle::BS_Cliff && BraceDepth == 0
+                 ? 0u
+                 : 1u);
         parseBlock(false, AddLevels);
         IsDecltypeAutoFunction = false;
         addUnwrappedLine(AddLevels > 0u ? LineLevel::Remove : LineLevel::Keep);
@@ -3265,8 +3283,9 @@ void UnwrappedLineParser::parseDoWhile() {
   // If in Whitesmiths mode, the line with the while() needs to be indented
   // to the same level as the block.
   if (Style.BreakBeforeBraces == FormatStyle::BS_Whitesmiths ||
-      Style.BreakBeforeBraces == FormatStyle::BS_Cliff)
+      Style.BreakBeforeBraces == FormatStyle::BS_Cliff) {
     ++Line->Level;
+  }
 
   nextToken();
   parseStructuralElement();

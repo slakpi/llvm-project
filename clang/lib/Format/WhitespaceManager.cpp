@@ -679,14 +679,20 @@ static unsigned AlignTokens(const FormatStyle &Style, F &&Matches,
     // `ColumnLimit == 0` means there is no column limit.
     if (ACS.AlignToColumn != 0 && NewLeft > ACS.AlignToColumn) {
       // Work backward to find the first change that is not a pointer or a
-      // reference, then update the next change to wrap to the next line. Shift
-      // the start columns down such that the first pointer / reference token,
-      // or the current token itself if there are no pointer / reference tokens,
-      // is at 0. ``AlignTokenSequence`` will move it into the correct position
-      // and make adjustments for any pointer / references. Long lines that wrap
-      // because of ColumnLimit will have already had this done (the next
-      // condition below is a separate case that does not align a change if it
-      // WOULD put it over the ColumnLimit).
+      // reference, then update the next change to wrap to the next line.
+      // Iterate over the pointer / reference tokens, count their length,
+      // and set the spaces before to zero. Then shift the spaces before the
+      // first pointer / reference token to account for the total length,
+      // e.g.:
+      //
+      //     int n;
+      //     this_is_a_long_type_name * * * p;
+      //
+      // Becomes:
+      //
+      //     int                     n;
+      //     this_is_a_long_type_name
+      //                          ***p;
       int Previous = i - 1;
       for ( ; Previous >= 0; --Previous) {
         auto &PrevChange = Changes[Previous];

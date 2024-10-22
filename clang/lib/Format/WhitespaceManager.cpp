@@ -694,12 +694,25 @@ static unsigned AlignTokens(const FormatStyle &Style, F &&Matches,
           break;
         }
       }
+
       unsigned Next = Previous + 1;
-      auto Shift = Changes[Next].StartOfTokenColumn;
       Changes[Next].NewlinesBefore++;
-      for ( ; Next <= i; ++Next) {
-        Changes[Next].StartOfTokenColumn -= Shift;
+
+      unsigned Prelude = 0;
+      for ( ; Next < i; ++Next) {
+        auto &Change = Changes[Next];
+        Prelude += Change.TokenLength;
+        Change.Spaces = 0;
       }
+
+      if (Prelude < ACS.AlignToColumn) {
+        Prelude = ACS.AlignToColumn - Prelude;
+      } else {
+        Prelude = 0;
+      }
+
+      Changes[Previous + 1].Spaces = Prelude;
+      Changes[i].Spaces = 0;
     } else if (Style.ColumnLimit != 0 &&
                Style.ColumnLimit < NewLeft + NewAnchor + NewRight) {
       AlignCurrentSequence();

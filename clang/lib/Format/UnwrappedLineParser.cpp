@@ -1919,10 +1919,9 @@ void UnwrappedLineParser::parseStructuralElement(
         }
         if (!Previous || Previous->isNot(TT_TypeDeclarationParen))
           FormatTok->setFinalizedType(TT_FunctionLBrace);
-        auto AddLevels = (Style.BreakBeforeBraces == FormatStyle::BS_Cliff ? 0u : 1u);
-        parseBlock(false, AddLevels);
+        parseBlock();
         IsDecltypeAutoFunction = false;
-        addUnwrappedLine(AddLevels > 0u ? LineLevel::Remove : LineLevel::Keep);
+        addUnwrappedLine();
         return;
       }
       // Otherwise this was a braced init list, and the structural

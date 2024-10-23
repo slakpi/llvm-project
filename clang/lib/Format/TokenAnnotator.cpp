@@ -2001,6 +2001,7 @@ public:
 
     bool KeywordVirtualFound = false;
     bool ImportStatement = false;
+    bool WasInOtherBlock = (!Scopes.empty() && Scopes.back() == ST_Other);
 
     // import {...} from '...';
     if (Style.isJavaScript() && CurrentToken->is(Keywords.kw_import))
@@ -2027,6 +2028,12 @@ public:
       if (!consumeToken())
         return LT_Invalid;
     }
+
+    if (Style.BreakBeforeBraces == FormatStyle::BS_Cliff &&
+        (WasInOtherBlock || (!Scopes.empty() && Scopes.back() == ST_Other))) {
+      Line.Level = Line.Level > 1 ? Line.Level - 1 : 0;
+    }
+
     if (Line.Type == LT_AccessModifier)
       return LT_AccessModifier;
     if (KeywordVirtualFound)

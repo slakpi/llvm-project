@@ -402,9 +402,6 @@ private:
 
   MacroExpander Macros;
 
-  // How deep are we in nested braced blocks?
-  unsigned BraceDepth;
-
   friend class ScopedLineState;
   friend class CompoundStatementIndenter;
 };
